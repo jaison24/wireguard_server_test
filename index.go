@@ -84,8 +84,14 @@ func parseKey(pubKey string) wgtypes.Key {
 	return key
 }
 
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Welcome to the WireGuard Server!")
+}
+
 func main() {
+	http.HandleFunc("/", rootHandler)
+
 	http.HandleFunc("/key-exchange", keyExchangeHandler)
-	fmt.Println("Server is running on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Println("Server is running on port 8000...")
+	log.Fatal(http.ListenAndServe(":8000", nil))
 }
