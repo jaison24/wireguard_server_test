@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os/exec"
 
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -21,11 +22,29 @@ type ServerResponse struct {
 	ServerPublicKey string `json:"server_public_key"`
 }
 
+// Ensure that the WireGuard interface `wg0` is created
+func createInterface() error {
+	cmd := exec.Command("sudo", "ip", "link", "add", "dev", "wg0", "type", "wireguard")
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to create interface: %v", err)
+	}
+	return nil
+}
+
 // Handler to generate keys and add a peer with client's public key
 func keyExchangeHandler(w http.ResponseWriter, r *http.Request) {
+	// Ensure the interface exists
+	err := createInterface()
+	if err != nil {
+		log.Println("Interface creation error:", err)
+		http.Error(w, "Failed to create WireGuard interface", http.StatusInternalServerError)
+		return
+	}
+
 	// Decode the incoming JSON request
 	var clientReq ClientRequest
-	err := json.NewDecoder(r.Body).Decode(&clientReq)
+	err = json.NewDecoder(r.Body).Decode(&clientReq)
 	if err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
@@ -90,7 +109,6 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/", rootHandler)
-
 	http.HandleFunc("/key-exchange", keyExchangeHandler)
 	fmt.Println("Server is running on port 8000...")
 	log.Fatal(http.ListenAndServe(":8000", nil))
