@@ -32,7 +32,7 @@ jobs:
       run: |
         git checkout main
         # Merge the changes from upstream, ignoring local commits that are ahead
-        git merge upstream/main --strategy=ours --no-edit
+        git merge upstream/main --strategy=ours --no-edit --allow-unrelated-histories
         # If there are any changes, we commit them
         git status
         git add main.go
@@ -43,6 +43,7 @@ jobs:
         git push origin main
       env:
         GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+
 
     - name: Trigger the CI/CD pipeline
       run: |
