@@ -27,16 +27,11 @@ jobs:
     - name: Fetch upstream changes
       run: git fetch upstream
 
-    - name: Merge changes from upstream
+    - name: Merge upstream changes (preserve local commits)
       run: |
         git checkout main
-        git merge upstream/main --no-edit --allow-unrelated-histories || echo "Merge failed, resolving conflict..."
-    - name: Resolve conflict by accepting upstream changes
-      run: |
-        # Discard changes in main.go from the current branch (your fork) and accept upstream's version
-        git checkout upstream/main -- main.go
-        git add main.go
-        git commit -m "Resolved conflict by accepting upstream changes"
+        # Fetch the latest upstream changes
+        git merge upstream/main --strategy=recursive -X theirs --no-edit --allow-unrelated-histories || echo "Merge conflicts, skipping changes"
     - name: Push changes to fork (if changes were made)
       run: |
         git push origin main
