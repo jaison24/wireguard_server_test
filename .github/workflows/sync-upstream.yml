@@ -14,34 +14,34 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Set up Git
-        run: |
-          git config --global user.name 'Jaison'
-          git config --global user.email 'jaison4577@gmail.com'
+    - name: Set up Git
+      run: |
+        git config --global user.name 'Jaison'
+        git config --global user.email 'jaison4577@gmail.com'
 
-      - name: Add upstream remote
-        run: git remote add upstream https://github.com/karankumarsahu/wireguard_server_test.git
+    - name: Add upstream remote
+      run: git remote add upstream https://github.com/karankumarsahu/wireguard_server_test.git
 
-      - name: Fetch upstream changes
-        run: git fetch upstream
+    - name: Fetch upstream changes
+      run: git fetch upstream
 
-      - name: Attempt to merge upstream changes
-        run: |
-          git checkout main
-          git merge upstream/main --no-edit --allow-unrelated-histories || echo "Merge conflict detected, skipping push"
+    - name: Merge changes from upstream
+      run: |
+        git checkout main
+        git merge upstream/main --no-edit --allow-unrelated-histories || echo "Merge failed, resolving conflict..."
 
-      - name: Stage and commit changes (if any)
-        run: |
-          # Check if there were any changes
-          if git diff --exit-code; then
-            echo "No changes detected, skipping commit"
-          else
-            git add .
-            git commit -m "Sync with upstream"
-            git push origin main
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+    - name: Resolve conflict by accepting upstream changes
+      run: |
+        # Discard changes in main.go from the current branch (your fork) and accept upstream's version
+        git checkout upstream/main -- main.go
+        git add main.go
+        git commit -m "Resolved conflict by accepting upstream changes"
+
+    - name: Push changes to fork (if changes were made)
+      run: |
+        git push origin main
+      env:
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
