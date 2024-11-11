@@ -73,7 +73,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 <<<<<<< HEAD
 	fmt.Fprintf(w, "Welcome to the WireGuard Server V10!")
 =======
-	fmt.Fprintf(w, "Welcome to the WireGuard Server V9!")
+	fmt.Fprintf(w, "Welcome to the WireGuard Server V10!")
 >>>>>>> 4eee954ab1b18ecae78c12a3a67a3240b0735541
 }
 
