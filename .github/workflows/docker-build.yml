@@ -1,8 +1,9 @@
 name: CI/CD Pipeline for Go Application
 
 on:
-  repository_dispatch:
-    types: [sync-complete]  # This event will trigger the workflow
+  push:
+    branches:
+      - main  # Only trigger on pushes to the main branch
 
 jobs:
   build:
@@ -28,12 +29,10 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest .
           docker tag ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest
-
       # Step 5: Push Docker Image to Docker Hub
       - name: Push Docker Image to Docker Hub
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest
-
   deploy:
     needs: build  # Wait for the build job to complete
     runs-on: ubuntu-latest
