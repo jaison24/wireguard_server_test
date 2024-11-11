@@ -50,9 +50,9 @@ jobs:
       - name: Deploy to Ubuntu Server
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            docker pull ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest
-            docker stop wireguard-test || true
-            docker rm wireguard-test || true
-            docker run -d --name wireguard-test -p 8080:8080 ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest
+            sudo docker stop wireguard-test || true
+            sudo docker rm wireguard-test || true
+            sudo docker run -d --name wireguard-test -p 8080:8080 ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest
           EOF
 
