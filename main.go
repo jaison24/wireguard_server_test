@@ -22,7 +22,7 @@ type ServerResponse struct {
 // Helper function to execute a shell command and capture the output
 func execCommand(cmd string, args ...string) (string, error) {
 	// Ensure we use the full path for the wg command
-	cmdPath := "/usr/bin/" + cmd
+	cmdPath := "/usr/bin/wg" + cmd
 	out, err := exec.Command(cmdPath, args...).CombinedOutput()
 	return string(out), err
 }
@@ -90,6 +90,6 @@ func main() {
 
 	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/key-exchange", keyExchangeHandler)
-	fmt.Println("Server is running on port 8000...")
+	fmt.Println("Server is running on port 8000... v1")
 	log.Fatal(http.ListenAndServe(":8000", nil))
 }
