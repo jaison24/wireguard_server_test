@@ -1,42 +1,50 @@
 name: CI/CD Pipeline for Go Application
 
 on:
-  repository_dispatch:
-    types: [sync-complete]  # Trigger only on sync-complete event
+  push:
+    branches:
+      - main  # Only trigger on pushes to the main branch
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Check out the repository
       - name: Check out the code
         uses: actions/checkout@v3
 
+      # Step 2: Set up Go environment
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.23.2'
 
+      # Step 3: Log in to Docker Hub
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
+      # Step 4: Build and Tag Docker Image
       - name: Build and Tag Docker Image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest .
           docker tag ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest
+      # Step 5: Push Docker Image to Docker Hub
       - name: Push Docker Image to Docker Hub
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest
   deploy:
-    needs: build
+    needs: build  # Wait for the build job to complete
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Copy SSH Key for authentication
       - name: Copy SSH Key
         uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      # Step 2: Deploy to Ubuntu Server
       - name: Deploy to Ubuntu Server
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
