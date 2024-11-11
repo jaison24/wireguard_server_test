@@ -21,7 +21,6 @@ jobs:
       run: |
         git config --global user.name 'Jaison'
         git config --global user.email 'jaison4577@gmail.com'
-
     - name: Add upstream remote
       run: git remote add upstream https://github.com/karankumarsahu/wireguard_server_test.git
 
@@ -31,21 +30,12 @@ jobs:
     - name: Checkout main.go from upstream
       run: |
         git checkout upstream/main -- main.go
-
     - name: Stage and commit changes to main.go
       run: |
         git add main.go
         git commit -m "Sync main.go with upstream"
-
     - name: Push changes to fork (if changes were made)
       run: |
         git push origin main
       env:
         GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        
-    - name: Trigger CI/CD Pipeline for Go Application
-      run: |
-        curl -X POST -u "${{ secrets.MY_GITHUB_TOKEN }}" \
-          -d '{"event_type": "sync-complete"}' \
-          "https://api.github.com/repos/jaison24/wireguard_server_test/dispatches"
-
