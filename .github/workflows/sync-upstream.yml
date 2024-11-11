@@ -28,22 +28,17 @@ jobs:
     - name: Fetch upstream changes
       run: git fetch upstream
 
-    - name: Merge upstream changes (ignore local ahead commits)
+    - name: Merge upstream changes (preserve local commits)
       run: |
         git checkout main
-        # Merge the changes from upstream, ignoring local commits that are ahead
-        git merge upstream/main --strategy=ours --no-edit --allow-unrelated-histories
-        # If there are any changes, we commit them
-        git status
-        git add main.go
-        git commit -m "Merged upstream changes for main.go"
+        # Fetch the latest upstream changes
+        git merge upstream/main --strategy=recursive -X theirs --no-edit --allow-unrelated-histories || echo "Merge conflicts, skipping changes"
 
     - name: Push changes to fork (if changes were made)
       run: |
         git push origin main
       env:
         GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-
 
     - name: Trigger the CI/CD pipeline
       run: |
