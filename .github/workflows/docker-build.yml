@@ -1,1 +1,58 @@
+name: CI/CD Pipeline for Go Application
+
+on:
+  push:
+    branches:
+      - main  # Only trigger on pushes to the main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Check out the code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Go environment
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 'latest'
+
+      # Step 3: Log in to Docker Hub
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      # Step 4: Build and Tag Docker Image
+      - name: Build and Tag Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/myapp:latest .
+          docker tag ${{ secrets.DOCKER_USERNAME }}/myapp:latest ${{ secrets.DOCKER_USERNAME }}/myapp:latest
+
+      # Step 5: Push Docker Image to Docker Hub
+      - name: Push Docker Image to Docker Hub
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/myapp:latest
+
+  deploy:
+    needs: build  # Wait for the build job to complete
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Copy SSH Key for authentication
+      - name: Copy SSH Key
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Step 2: Deploy to Ubuntu Server
+      - name: Deploy to Ubuntu Server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            docker pull ${{ secrets.DOCKER_USERNAME }}/myapp:latest
+            docker stop myapp || true
+            docker rm myapp || true
+            docker run -d --name myapp -p 8080:8080 ${{ secrets.DOCKER_USERNAME }}/myapp:latest
+          EOF
 
