@@ -24,6 +24,7 @@ func execCommand(cmd string, args ...string) (string, string, error) {
 	return string(out), string(out), err
 }
 
+
 // Handler to set up the WireGuard interface and add a peer with the client's public key
 func keyExchangeHandler(w http.ResponseWriter, r *http.Request) {
 	// Decode the incoming JSON request
@@ -70,7 +71,7 @@ func keyExchangeHandler(w http.ResponseWriter, r *http.Request) {
 
 // Root handler to show a welcome message on the base URL
 func rootHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Welcome to the WireGuard Server V1!")
+	fmt.Fprintf(w, "Welcome to the WireGuard Server V2!")
 }
 
 func main() {
