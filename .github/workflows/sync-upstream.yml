@@ -1,0 +1,40 @@
+name: Sync with upstream
+
+on:
+  schedule:
+    - cron: "0 * * * *"  # Run every hour; adjust as needed
+  push:
+    branches:
+      - main  # Run on push to the main branch
+  pull_request:
+    branches:
+      - main  # Run on pull request targeting the main branch
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Git
+      run: |
+        git config --global user.name 'Jaison'
+        git config --global user.email 'jaison4577@gmail.com'
+
+    - name: Add upstream remote
+      run: git remote add upstream https://github.com/karankumarsahu/wireguard_server_test.git
+
+    - name: Fetch upstream changes
+      run: git fetch upstream
+
+    - name: Merge changes from upstream
+      run: |
+        git checkout main
+        git merge upstream/main --no-edit
+
+    - name: Push changes to fork
+      run: |
+        git push origin main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
