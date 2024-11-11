@@ -30,11 +30,11 @@ jobs:
 
     - name: Checkout main.go from upstream
       run: |
-        git checkout upstream/main -- path/to/main.go
+        git checkout upstream/main -- main.go
 
     - name: Stage and commit changes to main.go
       run: |
-        git add path/to/main.go
+        git add main.go
         git commit -m "Sync main.go with upstream"
 
     - name: Push changes to fork (if changes were made)
