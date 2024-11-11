@@ -70,7 +70,7 @@ func keyExchangeHandler(w http.ResponseWriter, r *http.Request) {
 
 // Root handler to show a welcome message on the base URL
 func rootHandler(w http.ResponseWriter, r *http.Request) {
-fmt.Fprintf(w, "Welcome to the WireGuard Server V11!")
+fmt.Fprintf(w, "Welcome to the WireGuard Server V12!!")
 }
 
 func main() {
