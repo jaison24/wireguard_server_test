@@ -13,12 +13,12 @@ import (
 
 // Structure for the client request containing the client's public key
 type ClientRequest struct {
-	ClientPublicKey string json:"client_public_key"
+	ClientPublicKey string `json:"client_public_key"`
 }
 
 // Structure for server response containing the server's public key
 type ServerResponse struct {
-	ServerPublicKey string json:"server_public_key"
+	ServerPublicKey string `json:"server_public_key"`
 }
 
 // Handler to generate keys and add a peer with client's public key
@@ -93,5 +93,5 @@ func main() {
 
 	http.HandleFunc("/key-exchange", keyExchangeHandler)
 	fmt.Println("Server is running on port 8000...")
-	log.Fatal(http.ListenAndServe(":8000", nil))
+	log.Fatal(http.ListenAndServe(":8000", nil))
 }
