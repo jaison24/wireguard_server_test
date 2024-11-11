@@ -1,8 +1,14 @@
 name: Sync with upstream
 
 on:
-  repository_dispatch:
-    types: [sync-upstream]  # Custom event type to trigger the workflow
+  schedule:
+    - cron: "0 * * * *"  # Run every hour; adjust as needed
+  push:
+    branches:
+      - main  # Run on push to the main branch
+  pull_request:
+    branches:
+      - main  # Run on pull request targeting the main branch
 
 jobs:
   sync:
@@ -15,19 +21,22 @@ jobs:
       run: |
         git config --global user.name 'Jaison'
         git config --global user.email 'jaison4577@gmail.com'
-
     - name: Add upstream remote
       run: git remote add upstream https://github.com/karankumarsahu/wireguard_server_test.git
 
     - name: Fetch upstream changes
       run: git fetch upstream
 
-    - name: Merge upstream changes (preserve local commits)
+    - name: Merge changes from upstream
       run: |
         git checkout main
-        # Fetch the latest upstream changes
-        git merge upstream/main --strategy=recursive -X theirs --no-edit --allow-unrelated-histories || echo "Merge conflicts, skipping changes"
-
+        git merge upstream/main --no-edit --allow-unrelated-histories || echo "Merge failed, resolving conflict..."
+    - name: Resolve conflict by accepting upstream changes
+      run: |
+        # Discard changes in main.go from the current branch (your fork) and accept upstream's version
+        git checkout upstream/main -- main.go
+        git add main.go
+        git commit -m "Resolved conflict by accepting upstream changes"
     - name: Push changes to fork (if changes were made)
       run: |
         git push origin main
