@@ -11,7 +11,7 @@ COPY . .
 RUN go mod tidy && go build -o myapp
 
 # Expose the port the application listens on (update this if needed)
-EXPOSE 8080
+EXPOSE 8000
 
 # Run the built application
 CMD ["./myapp"]
