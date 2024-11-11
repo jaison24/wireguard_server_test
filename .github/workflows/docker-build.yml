@@ -1,9 +1,8 @@
 name: CI/CD Pipeline for Go Application
 
 on:
-  push:
-    branches:
-      - main  # Only trigger on pushes to the main branch
+  repository_dispatch:
+    types: [sync-complete]  # This event will trigger the workflow
 
 jobs:
   build:
@@ -57,6 +56,3 @@ jobs:
             fi
             sudo docker run -d --name wireguard-test -p 8000:8000 ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest
           EOF
-
-
-
