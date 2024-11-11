@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"os/exec"
 )
 
@@ -19,12 +18,10 @@ type ServerResponse struct {
 	ServerPublicKey string `json:"server_public_key"`
 }
 
-// Helper function to execute a shell command and capture the output
-func execCommand(cmd string, args ...string) (string, error) {
-	// Ensure we use the full path for the wg command
-	cmdPath := "/usr/bin/wg" + cmd
-	out, err := exec.Command(cmdPath, args...).CombinedOutput()
-	return string(out), err
+// Helper function to execute a shell command and capture the output (stdout and stderr)
+func execCommand(cmd string, args ...string) (string, string, error) {
+	out, err := exec.Command(cmd, args...).CombinedOutput()
+	return string(out), string(out), err
 }
 
 // Handler to set up the WireGuard interface and add a peer with the client's public key
@@ -38,38 +35,30 @@ func keyExchangeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate the server's private key
-	serverPrivateKey, err := execCommand("wg", "genkey")
+	serverPrivateKey, stderr, err := execCommand("/usr/bin/wg", "genkey")
 	if err != nil {
 		http.Error(w, "Error generating server private key", http.StatusInternalServerError)
-		log.Println("Key generation error:", err)
+		log.Println("Key generation error:", stderr)
 		return
 	}
 
 	// Generate the server's public key from the private key
-	serverPublicKey, err := execCommand("echo", serverPrivateKey+" | wg pubkey")
+	serverPublicKey, stderr, err := execCommand("echo", serverPrivateKey+" | /usr/bin/wg pubkey")
 	if err != nil {
 		http.Error(w, "Error generating server public key", http.StatusInternalServerError)
-		log.Println("Public key generation error:", err)
-		return
-	}
-
-	// Create the WireGuard interface if it doesn't exist
-	_, err = execCommand("wg", "set", "wg0", "private-key", "/etc/wireguard/privatekey", "listen-port", "51820")
-	if err != nil {
-		http.Error(w, "Error creating WireGuard interface", http.StatusInternalServerError)
-		log.Println("Interface creation error:", err)
+		log.Println("Public key generation error:", stderr)
 		return
 	}
 
 	// Configure the WireGuard interface with the server's private key and client as a peer
-	_, err = execCommand("wg", "set", "wg0",
+	_, stderr, err = execCommand("/usr/bin/wg", "set", "wg0",
 		"private-key", "/etc/wireguard/privatekey",
 		"listen-port", "51820",
 		"peer", clientReq.ClientPublicKey,
 		"allowed-ips", "10.0.0.2/32")
 	if err != nil {
 		http.Error(w, "Error configuring WireGuard interface", http.StatusInternalServerError)
-		log.Println("Interface configuration error:", err)
+		log.Println("Interface configuration error:", stderr)
 		return
 	}
 
@@ -81,15 +70,12 @@ func keyExchangeHandler(w http.ResponseWriter, r *http.Request) {
 
 // Root handler to show a welcome message on the base URL
 func rootHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Welcome to the WireGuard Server!!")
+	fmt.Fprintf(w, "Welcome to the WireGuard Server V1!")
 }
 
 func main() {
-	// Ensure the path includes /usr/bin
-	fmt.Println("Current PATH:", os.Getenv("PATH"))
-
 	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/key-exchange", keyExchangeHandler)
-	fmt.Println("Server is running on port 8000... v1")
+	fmt.Println("Server is running on port 8000...")
 	log.Fatal(http.ListenAndServe(":8000", nil))
 }
