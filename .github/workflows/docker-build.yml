@@ -18,7 +18,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: 'latest'
+          go-version: '1.23.2'
 
       # Step 3: Log in to Docker Hub
       - name: Log in to Docker Hub
