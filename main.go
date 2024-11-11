@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"text/template"
 )
 
 // Structure for the client request containing the client's public key
@@ -22,7 +21,9 @@ type ServerResponse struct {
 
 // Helper function to execute a shell command and capture the output
 func execCommand(cmd string, args ...string) (string, error) {
-	out, err := exec.Command(cmd, args...).CombinedOutput()
+	// Ensure we use the full path for the wg command
+	cmdPath := "/usr/bin/" + cmd
+	out, err := exec.Command(cmdPath, args...).CombinedOutput()
 	return string(out), err
 }
 
@@ -52,58 +53,23 @@ func keyExchangeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create the WireGuard configuration template
-	configTemplate := `
-[Interface]
-Address = 10.0.0.1/24
-PrivateKey = {{.PrivateKey}}
-ListenPort = 51820
-
-[Peer]
-PublicKey = {{.PeerPublicKey}}
-AllowedIPs = 10.0.0.2/32
-`
-
-	// Generate the configuration file content
-	tmpl, err := template.New("wgConfig").Parse(configTemplate)
+	// Create the WireGuard interface if it doesn't exist
+	_, err = execCommand("wg", "set", "wg0", "private-key", "/etc/wireguard/privatekey", "listen-port", "51820")
 	if err != nil {
-		http.Error(w, "Error generating configuration template", http.StatusInternalServerError)
-		log.Println("Template parsing error:", err)
+		http.Error(w, "Error creating WireGuard interface", http.StatusInternalServerError)
+		log.Println("Interface creation error:", err)
 		return
 	}
 
-	// Write the configuration to the file
-	configFile, err := os.Create("/etc/wireguard/wg0.conf")
+	// Configure the WireGuard interface with the server's private key and client as a peer
+	_, err = execCommand("wg", "set", "wg0",
+		"private-key", "/etc/wireguard/privatekey",
+		"listen-port", "51820",
+		"peer", clientReq.ClientPublicKey,
+		"allowed-ips", "10.0.0.2/32")
 	if err != nil {
-		http.Error(w, "Error creating WireGuard configuration file", http.StatusInternalServerError)
-		log.Println("File creation error:", err)
-		return
-	}
-	defer configFile.Close()
-
-	// Execute the template with the server's private key and client's public key
-	err = tmpl.Execute(configFile, map[string]string{
-		"PrivateKey":    serverPrivateKey,
-		"PeerPublicKey": clientReq.ClientPublicKey,
-	})
-	if err != nil {
-		http.Error(w, "Error writing to configuration file", http.StatusInternalServerError)
-		log.Println("Template execution error:", err)
-		return
-	}
-
-	// Restart WireGuard interface after updating the configuration
-	_, err = execCommand("wg-quick", "down", "wg0")
-	if err != nil {
-		http.Error(w, "Error bringing down the interface", http.StatusInternalServerError)
-		log.Println("wg-quick down error:", err)
-		return
-	}
-
-	_, err = execCommand("wg-quick", "up", "wg0")
-	if err != nil {
-		http.Error(w, "Error bringing up the interface", http.StatusInternalServerError)
-		log.Println("wg-quick up error:", err)
+		http.Error(w, "Error configuring WireGuard interface", http.StatusInternalServerError)
+		log.Println("Interface configuration error:", err)
 		return
 	}
 
@@ -119,6 +85,9 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Ensure the path includes /usr/bin
+	fmt.Println("Current PATH:", os.Getenv("PATH"))
+
 	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/key-exchange", keyExchangeHandler)
 	fmt.Println("Server is running on port 8000...")
