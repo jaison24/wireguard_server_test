@@ -24,11 +24,9 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest .
           docker tag ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest
-
       - name: Push Docker Image to Docker Hub
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/wireguard-test:latest
-
   deploy:
     needs: build
     runs-on: ubuntu-latest
