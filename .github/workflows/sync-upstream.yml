@@ -21,6 +21,7 @@ jobs:
       run: |
         git config --global user.name 'Jaison'
         git config --global user.email 'jaison4577@gmail.com'
+
     - name: Add upstream remote
       run: git remote add upstream https://github.com/karankumarsahu/wireguard_server_test.git
 
@@ -30,12 +31,26 @@ jobs:
     - name: Checkout main.go from upstream
       run: |
         git checkout upstream/main -- main.go
+
+    - name: Check if main.go has changes
+      run: |
+        git diff --quiet main.go || echo "Changes detected in main.go" > changes_detected.txt
+
     - name: Stage and commit changes to main.go
       run: |
-        git add main.go
-        git commit -m "Sync main.go with upstream"
+        if [ -f changes_detected.txt ]; then
+          git add main.go
+          git commit -m "Sync main.go with upstream"
+        else
+          echo "No changes in main.go. Skipping commit."
+        fi
+
     - name: Push changes to fork (if changes were made)
       run: |
-        git push origin main
+        if [ -f changes_detected.txt ]; then
+          git push origin main
+        else
+          echo "No changes to push."
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
