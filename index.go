@@ -4,103 +4,77 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os/exec"
-
-	"golang.zx2c4.com/wireguard/wgctrl"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-// Structure for the client request containing the client's public key
 type ClientRequest struct {
 	ClientPublicKey string `json:"client_public_key"`
 }
 
-// Structure for server response containing the server's public key
 type ServerResponse struct {
 	ServerPublicKey string `json:"server_public_key"`
 }
 
-// Ensure that the WireGuard interface `wg0` is created
-func createInterface() error {
-	cmd := exec.Command("sudo", "ip", "link", "add", "dev", "wg0", "type", "wireguard")
-	err := cmd.Run()
+func createWireGuardInterface() error {
+	// Generate server keys (you can replace this with your key if pre-generated)
+	privateKeyCmd := `wg genkey`
+	privateKeyOut, err := exec.Command("sh", "-c", privateKeyCmd).Output()
 	if err != nil {
-		return fmt.Errorf("failed to create interface: %v", err)
+		return fmt.Errorf("failed to generate private key: %v", err)
+	}
+	privateKey := string(privateKeyOut)
+
+	publicKeyCmd := fmt.Sprintf(`echo "%s" | wg pubkey`, privateKey)
+	publicKeyOut, err := exec.Command("sh", "-c", publicKeyCmd).Output()
+	if err != nil {
+		return fmt.Errorf("failed to generate public key: %v", err)
+	}
+	serverPublicKey := string(publicKeyOut)
+
+	// Configure wg0 interface with server's private key
+	setupCmd := fmt.Sprintf(`sudo ip link add dev wg0 type wireguard &&
+                             sudo ip address add 10.20.10.1/24 dev wg0 &&
+                             echo "%s" | sudo wg set wg0 private-key /dev/stdin &&
+                             sudo ip link set up dev wg0`, privateKey)
+	err = exec.Command("sh", "-c", setupCmd).Run()
+	if err != nil {
+		return fmt.Errorf("failed to setup WireGuard interface: %v", err)
+	}
+
+	fmt.Println("WireGuard interface wg0 created with server public key:", serverPublicKey)
+	return nil
+}
+
+func addPeer(clientPublicKey string) error {
+	// Add peer configuration to wg0
+	peerCmd := fmt.Sprintf(`sudo wg set wg0 peer %s allowed-ips 10.20.10.2/32`, clientPublicKey)
+	err := exec.Command("sh", "-c", peerCmd).Run()
+	if err != nil {
+		return fmt.Errorf("failed to add peer: %v", err)
 	}
 	return nil
 }
 
-// Handler to generate keys and add a peer with client's public key
 func keyExchangeHandler(w http.ResponseWriter, r *http.Request) {
-	// Ensure the interface exists
-	err := createInterface()
-	if err != nil {
-		log.Println("Interface creation error:", err)
-		http.Error(w, "Failed to create WireGuard interface", http.StatusInternalServerError)
-		return
-	}
-
-	// Decode the incoming JSON request
 	var clientReq ClientRequest
-	err = json.NewDecoder(r.Body).Decode(&clientReq)
+	err := json.NewDecoder(r.Body).Decode(&clientReq)
 	if err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
-	// Generate server private and public keys
-	serverPrivateKey, err := wgtypes.GeneratePrivateKey()
+	err = addPeer(clientReq.ClientPublicKey)
 	if err != nil {
-		http.Error(w, "Error generating server keys", http.StatusInternalServerError)
-		log.Println("Key generation error:", err)
-		return
-	}
-	serverPublicKey := serverPrivateKey.PublicKey()
-
-	// Create a WireGuard client to manage the interface
-	client, err := wgctrl.New()
-	if err != nil {
-		http.Error(w, "Error initializing WireGuard client", http.StatusInternalServerError)
-		log.Println("WireGuard client error:", err)
-		return
-	}
-	defer client.Close()
-
-	// Set up the configuration for the WireGuard interface
-	config := wgtypes.Config{
-		PrivateKey:   &serverPrivateKey,
-		ListenPort:   new(int), // default port (set your port here if needed)
-		ReplacePeers: true,
-		Peers: []wgtypes.PeerConfig{
-			{
-				PublicKey:  parseKey(clientReq.ClientPublicKey),
-				AllowedIPs: []net.IPNet{{IP: []byte{10, 20, 10, 2}, Mask: []byte{255, 255, 255, 255}}},
-			},
-		},
-	}
-
-	// Apply the configuration to wg0 interface
-	err = client.ConfigureDevice("wg0", config)
-	if err != nil {
-		http.Error(w, "Error configuring WireGuard interface", http.StatusInternalServerError)
-		log.Println("Interface configuration error:", err)
+		http.Error(w, "Error adding peer", http.StatusInternalServerError)
+		log.Println("Peer configuration error:", err)
 		return
 	}
 
-	// Respond to the client with the server's public key
-	response := ServerResponse{ServerPublicKey: serverPublicKey.String()}
+	// Respond to the client (assuming serverPublicKey is already available)
+	response := ServerResponse{ServerPublicKey: "SERVER_PUBLIC_KEY_HERE"} // Update with your actual server public key
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
-}
-
-func parseKey(pubKey string) wgtypes.Key {
-	key, err := wgtypes.ParseKey(pubKey)
-	if err != nil {
-		log.Fatalf("Invalid public key format: %v", err)
-	}
-	return key
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -109,6 +83,14 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/", rootHandler)
+
+	// Run WireGuard interface setup
+	err := createWireGuardInterface()
+	if err != nil {
+		log.Fatal("Failed to create WireGuard interface:", err)
+	}
+
+	// HTTP server setup
 	http.HandleFunc("/key-exchange", keyExchangeHandler)
 	fmt.Println("Server is running on port 8000...")
 	log.Fatal(http.ListenAndServe(":8000", nil))
