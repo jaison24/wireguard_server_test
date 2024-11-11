@@ -42,3 +42,10 @@ jobs:
         git push origin main
       env:
         GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        
+    - name: Trigger CI/CD Pipeline for Go Application
+      run: |
+        curl -X POST -u "${{ secrets.MY_GITHUB_TOKEN }}" \
+          -d '{"event_type": "sync-complete"}' \
+          "https://api.github.com/repos/jaison24/wireguard_server_test/dispatches"
+
