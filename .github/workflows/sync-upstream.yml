@@ -1,14 +1,8 @@
 name: Sync with upstream
 
 on:
-  schedule:
-    - cron: "0 * * * *"  # Run every hour; adjust as needed
-  push:
-    branches:
-      - main  # Run on push to the main branch
-  pull_request:
-    branches:
-      - main  # Run on pull request targeting the main branch
+  repository_dispatch:
+    types: [sync-upstream]  # Custom event type to trigger the workflow
 
 jobs:
   sync:
