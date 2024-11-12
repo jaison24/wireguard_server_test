@@ -77,5 +77,5 @@ func main() {
 	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/key-exchange", keyExchangeHandler)
 	fmt.Println("Server is running on port 6000...")
-	log.Fatal(http.ListenAndServe(":6000", nil))
+	log.Fatal(http.ListenAndServe("0.0.0.0:6000", nil))
 }
